@@ -2,7 +2,6 @@ use std::{collections::HashMap, fs};
 
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -23,9 +22,13 @@ struct Snippet {
 fn main() {
     let args = Args::parse();
 
+    // Regex for parsing "normal" classes and their content, e.g. what's in the curly braces
     let re = regex::Regex::new("[ ]*[.]([a-zA-Z0-9-]+[:]?[a-zA-Z0-9-]+)[ ]?[{][ ]*([ a-zA-Z0-9;:!%.-]*[a-zA-Z0-9;:!%.-]+)[ ]*[}]").unwrap();
 
-    let contents = fs::read_to_string(args.in_file).expect("Could not read file").replace("\\:", ":");
+    // Read the content, expected to be minified, and fix escaped : wherever it appears
+    let contents = fs::read_to_string(args.in_file)
+        .expect("Could not read input file!")
+        .replace("\\:", ":");
 
     let mut output = HashMap::new();
 
@@ -42,5 +45,9 @@ fn main() {
         );
     }
 
-    println!("{}", json!(output));
+    fs::write(
+        args.out_file,
+        serde_json::to_string_pretty(&output).expect("Could not serialize JSON!"),
+    )
+    .expect("Could not write output!");
 }
